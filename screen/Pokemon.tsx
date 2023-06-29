@@ -1,13 +1,15 @@
-import {View, Text, StyleSheet, ScrollView, SafeAreaView} from 'react-native';
-import React, {useEffect, useState} from 'react';
+import { View, Text, StyleSheet, ScrollView, SafeAreaView } from 'react-native';
+import React, { useEffect, useState } from 'react';
 import Input from '../component/Input';
 import Card from '../component/Card';
 import axios from 'axios';
+
 
 const Pokemon = () => {
   const [data, setData] = useState([]);
   const [filteredData, setFilteredData] = useState([]);
   const [query, setQuery] = useState('');
+  const [offset, setOffset] = useState(0);
 
   const fetchData = async () => {
     try {
@@ -56,13 +58,54 @@ const Pokemon = () => {
     filterData(text);
   };
 
+  const handleScroll = event => {
+    const { layoutMeasurement, contentOffset, contentSize } = event.nativeEvent;
+    const isEndReached =
+      layoutMeasurement.height + contentOffset.y >= contentSize.height;
+
+    if (isEndReached) {
+      loadMoreData();
+    }
+  };
+
+  const loadMoreData = async () => {
+    setOffset(prevOffset => prevOffset + 40);
+    try {
+      const response = await axios.get(`https://pokeapi.co/api/v2/pokemon?limit=100&offset=${offset}`);
+      // console.log(response)
+      const results = response.data.results;
+      const pokemonDataPromises = results.map(async item => {
+        const pokemonResponse = await axios.get(item.url);
+        const types = pokemonResponse.data.types.map(type => type.type.name);
+        const abilities = pokemonResponse.data.abilities
+          .map(ability => ability.ability.name)
+          .join(', ');
+        return {
+          name: pokemonResponse.data.name,
+          sprite: pokemonResponse.data.sprites.front_default,
+          id: pokemonResponse.data.id,
+          weight: pokemonResponse.data.weight,
+          height: pokemonResponse.data.height,
+          abilities: abilities,
+          types: types,
+        };
+      });
+      // console.log(data)
+
+      const pokemonData = await Promise.all(pokemonDataPromises);
+      setFilteredData(prevData => [...prevData, ...pokemonData]);
+    } catch (error) {
+      console.log(error);
+    }
+  };
+
   return (
     <SafeAreaView>
-      <ScrollView>
+      <ScrollView onScroll={handleScroll} scrollEventThrottle={200}>
         <View style={styles.container}>
           <View style={styles.topper}>
             <Text style={styles.text}>POKEDEX</Text>
-            <View style={{marginTop: 10}}>
+            <View style={{ marginTop: 10 }}>
               <Input
                 textholder="Name or type"
                 color="#ccc"

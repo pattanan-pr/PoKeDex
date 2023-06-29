@@ -53,7 +53,7 @@ const Card = ({ id, name, url, element, weight, height, ability }) => {
     navigation.navigate('PokemonDetails', { name, url, element, weight, height, ability });
   };
 
-  console.log(element);
+  // console.log(element);
   return (
     <TouchableOpacity onPress={handleCardPress}>
       <View
